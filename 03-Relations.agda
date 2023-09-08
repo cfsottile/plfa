@@ -4,7 +4,7 @@ import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl; cong; sym)
 
 import Data.Nat as Nat
-open Nat using (ℕ; zero; suc; _+_)
+open Nat using (ℕ; zero; suc; _+_; _*_)
 
 import 02-Induction as Ind
 open Ind using (+-identityʳ; +-suc; +-comm)
@@ -73,12 +73,10 @@ data Total (m n : ℕ) : Set where
                             -----
                           → m + p ≤ n + p
 +-monoˡ-≤ m n zero m≤n
-  rewrite +-identityʳ m
-        | +-identityʳ n
+  rewrite +-identityʳ m | +-identityʳ n
   = m≤n
 +-monoˡ-≤ m n (suc p) m≤n
-  rewrite +-suc m p
-        | +-suc n p
+  rewrite +-suc m p | +-suc n p
   = s≤s (+-monoˡ-≤ m n p m≤n)
 
 +-monoʳ-≤ : ∀ (n p q : ℕ) → p ≤ q
@@ -95,3 +93,106 @@ data Total (m n : ℕ) : Set where
                            → m + p ≤ n + q
 +-mono-≤ {m} {n} {p} {q} m≤n p≤q
   = ≤-trans (+-monoˡ-≤ m n p m≤n) (+-monoʳ-≤ n p q p≤q)
+
+*-mono-≤ : ∀ {m n p q : ℕ} → m ≤ n
+                           → p ≤ q
+                             -----
+                           → m * p ≤ n * q
+*-mono-≤ z≤n p≤q = z≤n
+*-mono-≤ {suc m} {suc n} {p} {q} (s≤s m≤n) p≤q
+  rewrite +-comm p (m * p) | +-comm q (n * q)
+  = +-mono-≤ (*-mono-≤ m≤n p≤q) p≤q
+
+infix 4 _<_
+
+data _<_ : ℕ → ℕ → Set where
+
+  z<s : ∀ {n : ℕ}
+        ---------
+      → zero < suc n
+
+  s<s : ∀ {m n : ℕ}
+      → m < n
+        -------------
+      → suc m < suc n
+
+<-trans : ∀ {m n p : ℕ} → m < n
+                        → n < p
+                          -----
+                        → m < p
+<-trans z<s (s<s n<p) = z<s
+<-trans {suc m} {suc n} {suc p} (s<s m<n) (s<s n<p) = s<s (<-trans m<n n<p)
+
+data Trichotomy (m n : ℕ) : Set where
+  lesser  : m < n → Trichotomy m n
+  equal   : m ≡ n → Trichotomy m n
+  greater : n < m → Trichotomy m n
+
+<-tricho : ∀ (m n : ℕ) → Trichotomy m n
+<-tricho zero zero = equal refl
+<-tricho zero (suc n) = lesser z<s
+<-tricho (suc m) zero = greater z<s
+<-tricho (suc m) (suc n)
+  with <-tricho m n
+...  | lesser  m<n = lesser (s<s m<n)
+...  | equal   m≡n = equal (cong suc m≡n)
+...  | greater n<m = greater (s<s n<m)
+
+-- Versiones con inducción en otros datos
+
+-- <-+-suc : ∀ {m n : ℕ} → m < m + suc n
+-- <-+-suc {zero} = z<s
+-- <-+-suc {suc m} = s<s <-+-suc
+
+-- +-monoʳ-< : ∀ {m n p : ℕ}
+--   → m < n
+--     -------------
+--   → m + p < n + p
+-- +-monoʳ-< {zero} {suc n} {p} z<s
+--   rewrite +-comm n p
+--         | sym (+-suc p n)
+--   = <-+-suc
+-- +-monoʳ-< (s<s m<n) = s<s (+-monoʳ-< m<n)
+
+-- +-monoˡ-< : ∀ {n p q : ℕ}
+--   → p < q
+--     -------------
+--   → n + p < n + q
+-- +-monoˡ-< {n} z<s
+--   rewrite +-identityʳ n
+--   = <-+-suc
+-- +-monoˡ-< {n} {suc p} {suc q} (s<s p<q)
+--   rewrite +-suc n p
+--         | +-suc n q
+--   = s<s (+-monoˡ-< p<q)
+
++-monoˡ-< : ∀ {n p q : ℕ}
+  → p < q
+    -------------
+  → n + p < n + q
++-monoˡ-< {zero} p<q = p<q
++-monoˡ-< {suc n} p<q = s<s (+-monoˡ-< p<q)
+
++-monoʳ-< : ∀ {m n p : ℕ}
+  → m < n
+    -------------
+  → m + p < n + p
++-monoʳ-< {m} {n} {zero} m<n
+  rewrite +-identityʳ m
+        | +-identityʳ n
+  = m<n
++-monoʳ-< {m} {n} {suc p} m<n
+  rewrite +-suc m p
+        | +-suc n p
+  = s<s (+-monoʳ-< m<n)
+
++-mono-< : ∀ {m n p q : ℕ}
+  → m < n
+  → p < q
+    -------------
+  → m + p < n + q
+-- En otras noticias, dándole un poco menos de vueltas, la joda con usar la
+-- transitividad es simplemente haberse dado cuenta de que n+p queda en el medio
+-- de los dos sublemas. O haberse dado cuenta de que hay un n+p en el medio y a
+-- partir de eso armar los sublemas.
++-mono-< m<n p<q = <-trans (+-monoʳ-< m<n) (+-monoˡ-< p<q)
