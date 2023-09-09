@@ -196,3 +196,86 @@ data Trichotomy (m n : ℕ) : Set where
 -- de los dos sublemas. O haberse dado cuenta de que hay un n+p en el medio y a
 -- partir de eso armar los sublemas.
 +-mono-< m<n p<q = <-trans (+-monoʳ-< m<n) (+-monoˡ-< p<q)
+
+≤→< : ∀ {m n : ℕ}
+  → suc m ≤ n
+    -----
+  → m < n
+≤→< {zero} {suc n'} (s≤s m≤n') = z<s
+≤→< {suc m} {suc n'} (s≤s m≤n') = s<s (≤→< m≤n')
+
+<→≤ : ∀ {m n : ℕ}
+  → m < n
+    ---------
+  → suc m ≤ n
+<→≤ z<s = s≤s z≤n
+<→≤ (s<s m<n) = s≤s (<→≤ m<n)
+
+≤-n-suc : ∀ {n : ℕ} → n ≤ suc n
+≤-n-suc {zero} = z≤n
+≤-n-suc {suc n} = s≤s ≤-n-suc
+
+<-trans' : ∀ {m n p : ℕ}
+  → m < n
+  → n < p
+    -----
+  → m < p
+<-trans' {m} {n} {p} m<n n<p =
+-- suc m ≤ n ≤ suc n ≤ p
+  ≤→< {m} {p}
+    (≤-trans {suc m} {suc n} {p}
+      (≤-trans {suc m} {n} {suc n}
+        (<→≤ m<n) ≤-n-suc) (<→≤ n<p))
+
+<-trans'' : ∀ {m n p : ℕ}
+  → m < n
+  → n < p
+    -----
+  → m < p
+<-trans'' m<n n<p = ≤→< (≤-trans (≤-trans (<→≤ m<n) ≤-n-suc) (<→≤ n<p))
+
+data even : ℕ → Set
+data odd  : ℕ → Set
+
+data even where
+
+  zero :
+    ---------
+    even zero
+
+  suc : ∀ {n : ℕ}
+    → odd n
+      -----------
+    → even (suc n)
+
+data odd where
+
+  suc : ∀ {n : ℕ}
+    → even n
+      -----------
+    → odd (suc n)
+
+e+e≡e : ∀ {m n : ℕ}
+  → even m
+  → even n
+    ------------
+  → even (m + n)
+
+o+e≡o : ∀ {m n : ℕ}
+  → odd m
+  → even n
+    -----------
+  → odd (m + n)
+
+e+e≡e zero en = en
+e+e≡e (suc om) en = suc (o+e≡o om en)
+
+o+e≡o (suc em) en = suc (e+e≡e em en)
+
+o+o≡e : ∀ {m n : ℕ}
+  → odd m
+  → odd n
+    ------------
+  → even (m + n)
+o+o≡e (suc {m} em) (suc {n} en) rewrite +-suc m n = suc (suc (e+e≡e em en))
+-- muy fumado esto de mezclar todo
