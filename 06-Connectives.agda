@@ -123,6 +123,7 @@ uniq-⊥ h ()
 →-elim L M = L M
 
 -- Preguntar a Miguel: cuándo reduce λx.fx a f como para dar el goal f ≡ f
+-- Considerando que pedirle a Agda que normalice λ x → f x da el mismo término
 η-→ : ∀ {A B : Set} (f : A → B) → (λ (x : A) → f x) ≡ f
 η-→ f = refl
 

@@ -1,0 +1,116 @@
+\documentclass{article}
+
+\usepackage[T1]{fontenc}
+\usepackage{fullpage}
+\usepackage{xcolor}
+\usepackage[parfill]{parskip}
+\usepackage{bm}
+\usepackage{xspace}
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+
+\title{Formalización de la propiedad de Progreso\\para el \stlcw}
+% \subtitle{Blueprint}
+\author{Cristian Sottile}
+\date{14 de septiembre de 2023}
+
+\newcommand{\stlcw}{$\lambda-$cálculo simplemente tipado\xspace}
+\newcommand{\stlc}{$\lambda^{\rightarrow}$}
+\newcommand{\lamg}{\ensuremath{\lambda^{\mathbb{m}}}\xspace}
+\newcommand{\lamm}{\ensuremath{\lambda^{\mathbb{m}}}\xspace}
+\newcommand{\wme}{\ensuremath{\mathcal{W}}\xspace}
+\newcommand{\wmem}[1]{\ensuremath{\mathcal{W}(#1)}\xspace}
+\newcommand{\tmme}{\ensuremath{\mathcal{T}^{\mathbb{m}}}\xspace}
+\newcommand{\tmmem}[1][M]{\ensuremath{\mathcal{T}^{\mathbb{m}}(#1)}\xspace}
+\newcommand{\tme}{\ensuremath{\mathcal{T}}\xspace}
+\newcommand{\tmem}[1][M]{\ensuremath{\mathcal{T}(#1)}\xspace}
+\newcommand{\tom}{\ensuremath{\rightarrow_m}\xspace}
+\newcommand{\tob}{\ensuremath{\rightarrow_{\beta}}\xspace}
+\newcommand{\tof}{\ensuremath{\triangleright}\xspace}
+\newcommand{\wrap}[1]{\ensuremath{\bm{\{}#1\bm{\}}}\xspace}
+\newcommand{\wei}[1]{\ensuremath{\mathsf{w}(#1)}\xspace}
+\newcommand{\maxdeg}[1]{\ensuremath{\dh(#1)}\xspace}
+\newcommand{\simp}[1]{\ensuremath{\mathsf{S}_*(#1)}\xspace}
+\newcommand{\simpd}[2][d]{\ensuremath{\mathsf{S}_{#1}(#2)}\xspace}
+
+\newcommand{\inte}[1]{\ensuremath{[[#1]]}}
+\newcommand{\lam}[2][x]{\ensuremath{\lambda #1 . #2}}
+
+\newcommand{\sep}{\ensuremath{\ |\ }}
+\newcommand{\ie}{{\em i.e.}\xspace}
+\newcommand{\eg}{{\em e.g.}\xspace}
+\newcommand{\ver}[1]{\textcolor{red}{#1}}
+
+\newcommand{\n}[1]{\ensuremath{\mathsf{#1}}}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+  La propuesta es formalizar la propiedad de Progreso del \stlcw. El objetivo del
+  trabajo es comprender en profundidad las maneras de formalizar el \stlcw y sus
+  propiedades principales. El asistente a usar será Agda por el mismo motivo,
+  comprender en profundidad esa herramienta en particular.
+
+\end{abstract}
+
+\section{La propiedad}
+
+En el \stlcw definimos una relación entre
+términos que llamamos reducción y expresa la idea de computación. Las formas
+normales son los términos que “no reducen”. Los valores son los términos que se
+construyen (dependiendo la variante del sistema puede que sea únicamente) con
+los constructores de introducción de su tipo. Por ejemplo:
+
+\begin{itemize}
+\item el constructor de introducción de las funciones es $\lambda$
+\item el constructor de eliminación de las funciones es la aplicación
+  (yuxtaposición)
+\item el constructor de introducción de los pares es $(\_,\_)$
+\item los constructores de eliminación de los pares son las proyecciones
+  \n{fst} y \n{snd}
+\item los constructores de introducción de los números son \n{zero} y \n{suc}
+\end{itemize}
+
+Lo esperable de un lenguaje de programación es que todo término se corresponda
+vía reducción con un valor de su tipo. Por ejemplo $(\lambda x.x)\ \n{zero}$ se
+corresponde con el valor \n{zero}. Si nuestro lenguaje no contara con la regla
+$\beta$, el término $(\lambda x.x)\ \n{zero}$ estaría en forma normal sin
+corresponderse con un valor. Llamamos a estos términos “trabados”. La propiedad
+de Progreso establece que no existen términos trabados en el \stlcw.
+
+\section{La formalización}
+
+Tenemos dos maneras de expresar progreso en Agda: mediante una definición
+inductiva de las pruebas de una proposición, y otra mediante el uso de
+conectivos lógicos. Abordaremos ambas, las compararemos y probaremos que son
+equivalentes. Previamente deberemos definir varias funciones y lemas referentes
+al \stlcw, así como la propia representación del cálculo.
+
+\subsection{Definición inductiva}
+
+Definimos la relación \n{Progress}, que establece cuándo un término progresa,
+de la siguiente manera:
+
+\verb|data Progress (M : Term) : Set where|\\
+\verb|  step : forall {N} → (M → N) → Progress M|\\
+\verb|  done :              Value M → Progress M|
+
+Con el primer constructor indicamos que si hay un término $N$ al que
+reduzca $M$, entonces cumple progreso, y con el segundo que si es un valor,
+entonces cumple progreso.
+
+\subsection{Conectivos lógicos}
+
+Utilizamos los conectivos lógicos (que previamente definiremos) de disyunción y
+cuantificación existencial para enunciar el teorema como una proposición que
+establece que siempre que un término tenga tipo bajo el contexto cerrado, ese
+término es un valor o bien tiene un reducto.
+
+$$\n{progress} :
+  \forall M,A.\
+    \emptyset \vdash M : A \rightarrow
+      \n{Value}\ M \vee \exists N (M \longrightarrow N)$$
+
+\end{document}
