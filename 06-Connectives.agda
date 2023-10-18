@@ -48,6 +48,8 @@ data _⊎_ (A B : Set) : Set where
       -----
     → A ⊎ B
 
+infixr 1 _⊎_
+
 case-⊎ : ∀ {A B C : Set}
   → (A → C)
   → (B → C)
@@ -186,8 +188,11 @@ currying =
     from∘to' (inj₁ ⟨ a , b ⟩) = refl
     from∘to' (inj₂     c    ) = refl
 
-postulate
-  ⊎-weak-× : ∀ {A B C : Set} → (A ⊎ B) × C → A ⊎ (B × C)
+⊎-weak-× : ∀ {A B C : Set} → (A ⊎ B) × C → A ⊎ (B × C)
+⊎-weak-× ⟨ inj₁ a , c ⟩ = inj₁ a
+⊎-weak-× ⟨ inj₂ b , c ⟩ = inj₂ ⟨ b , c ⟩
+
+-- La corresponding dist-law es (A ⊎ B) × (A ⊎ C) ≃ A ⊎ (B × C). Cuando A 
 
 postulate
   ⊎×-implies-×⊎ : ∀ {A B C D : Set} → (A × B) ⊎ (C × D) → (A ⊎ C) × (B ⊎ D)
