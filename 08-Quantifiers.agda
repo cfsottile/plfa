@@ -4,6 +4,7 @@ import Relation.Binary.PropositionalEquality as Eq
 open Eq using (_≡_; refl)
 open import Data.Nat using (ℕ; zero; suc; _+_; _*_)
 open import Relation.Nullary using (¬_)
+open import Data.Empty using (⊥)
 open import Data.Product using (_×_; proj₁; proj₂) renaming (_,_ to ⟨_,_⟩)
 open import Data.Sum using (_⊎_; inj₁; inj₂)
 open import plfa.part1.Isomorphism using (_≃_; extensionality)
@@ -62,6 +63,80 @@ postulate
   ; to∘from = λ x → refl
   }
 
+data Σ (A : Set) (B : A → Set) : Set where
+  ⟨_,_⟩ : (x : A) → B x → Σ A B
+
+Σ-syntax = Σ
+infix 2 Σ-syntax
+syntax Σ-syntax A (λ x → Bx) = Σ[ x ∈ A ] Bx
+
+∃ : ∀ {A : Set} (B : A → Set) → Set
+∃ {A} B = Σ A B
+
+∃-syntax = ∃
+syntax ∃-syntax (λ x → B) = ∃[ x ] B
+
+∃-elim : ∀ {A : Set} {B : A → Set} {C : Set}
+  → (∀ x → B x → C)
+  → ∃[ x ] B x
+    ----------
+  → C
+∃-elim f ⟨ x , y ⟩ = f x y
+
 -- hacer yo
--- ∀∃-currying : ∀ {A : Set} {B : A → Set} {C : Set}
---   → (∀ x → B x → C) ≃ (∃[ x ] B x → C)
+∀∃-currying : ∀ {A : Set} {B : A → Set} {C : Set}
+  → (∀ x → B x → C) ≃ (∃[ x ] B x → C)
+∀∃-currying = record
+  { to = ∃-elim
+  ; from = λ f a ba → f ⟨ a , ba ⟩
+  ; from∘to = λ f → refl
+  ; to∘from = λ f → ∀-extensionality λ{ ⟨ a , ba ⟩ → refl }
+  }
+-- WTF generalización de la curryficiación???????
+
+∃-distrib-⊎ : ∀ {A : Set} {B C : A → Set} →
+  ∃[ x ] (B x ⊎ C x) ≃ (∃[ x ] B x) ⊎ (∃[ x ] C x)
+∃-distrib-⊎ = record
+  { to = λ{ ⟨ x , inj₁ Bx ⟩ → inj₁ ⟨ x , Bx ⟩
+          ; ⟨ x , inj₂ Cx ⟩ → inj₂ ⟨ x , Cx ⟩ }
+  ; from = λ{ (inj₁ ⟨ a , ba ⟩) → ⟨ a , inj₁ ba ⟩
+            ; (inj₂ ⟨ a , ca ⟩) → ⟨ a , inj₂ ca ⟩ }
+  ; from∘to = λ{ ⟨ a , inj₁ ba ⟩ → refl ; ⟨ a , inj₂ ca ⟩ → refl }
+  ; to∘from = λ{ (inj₁ ⟨ a , ba ⟩) → refl ; (inj₂ ⟨ a , ca ⟩) → refl }
+  }
+
+∃×-implies-×∃ : ∀ {A : Set} {B C : A → Set} →
+  ∃[ x ] (B x × C x) → (∃[ x ] B x) × (∃[ x ] C x)
+∃×-implies-×∃ ⟨ a , ⟨ ba , ca ⟩ ⟩ = ⟨ ⟨ a , ba ⟩ , ⟨ a , ca ⟩ ⟩
+
+∃-⊎ : ∀ {A : Set} {B : Tri → Set} → ∃[ x ] B x ≃ B aa ⊎ B bb ⊎ B cc
+∃-⊎ = record
+  { to = λ{ ⟨ aa , baa ⟩ → inj₁ baa
+          ; ⟨ bb , bbb ⟩ → inj₂ (inj₁ bbb)
+          ; ⟨ cc , bcc ⟩ → inj₂ (inj₂ bcc) }
+  ; from = λ{ (inj₁ baa ) → ⟨ aa , baa ⟩
+            ; (inj₂ (inj₁ bbb)) → ⟨ bb , bbb ⟩
+            ; (inj₂ (inj₂ bcc)) → ⟨ cc , bcc ⟩ }
+  ; from∘to = λ{ ⟨ aa , baa ⟩ → refl
+               ; ⟨ bb , bbb ⟩ → refl
+               ; ⟨ cc , bcc ⟩ → refl }
+  ; to∘from = λ{ (inj₁ baa ) → refl
+               ; (inj₂ (inj₁ bbb)) → refl
+               ; (inj₂ (inj₂ bcc)) → refl }
+  }
+
+-- TO DO even-odd
+
+¬∃≃∀¬ : ∀ {A : Set} {B : A → Set} → (¬ ∃[ x ] B x) ≃ ∀ x → ¬ B x
+¬∃≃∀¬ = record
+  { to = λ f a ba → f ⟨ a , ba ⟩
+  ; from = λ{ f ⟨ a , ba ⟩ → f a ba }
+  ; from∘to = λ ¬f → ∀-extensionality λ{ ⟨ a , ba ⟩ → refl }
+  ; to∘from = λ y → refl
+  }
+
+∃¬-implies-¬∀ : ∀ {A : Set} {B : A → Set}
+  → ∃[ x ] (¬ B x)
+    --------------
+  → ¬ (∀ x → B x)
+∃¬-implies-¬∀ ⟨ a , ¬ba ⟩ f = ¬ba (f a)
