@@ -340,81 +340,94 @@ All-∀ {A} {P} xs =
     from : (xs : List A) → (∀ x → x ∈ xs → P x) → All P xs
     from [] p = []
     from (x ∷ xs') p = p x (here refl) ∷ from xs' λ x x∈xs' → p x (there x∈xs')
-      -- where p' : ∀ x → x ∈ xs' → P x
-      --       p' = λ x x∈xs' → p x (there x∈xs')
 
-    from∘to : (x : All P xs) → from xs (to xs x) ≡ x
+    from∘to : {xs : List A} → (Pxs : All P xs) → from xs (to xs Pxs) ≡ Pxs
     from∘to [] = refl
-    from∘to (Px ∷ Pxs) = cong (Px ∷_) {!!}
+    from∘to (Px ∷ Pxs') = cong (Px ∷_) (from∘to Pxs')
 
-    to∘from : (p : (x : A) → x ∈ xs → P x) → to xs (from xs p) ≡ p
-    -- to∘from [] p = ∀-extensionality λ x → ∀-extensionality λ ()
-    to∘from p = ∀-extensionality λ x → ∀-extensionality λ{ (here _) → {!!} ; (there e) → {!!} }
+    lemma' : {xs : List A} → (p : (x : A) → x ∈ xs → P x) → (x : A) → (e : x ∈ xs)
+      → to xs (from xs p) x e ≡ p x e
+    lemma' {.(x ∷ _)} p x (here refl) = refl
+    lemma' {(_ ∷ xs')} p x (there e) = lemma' {xs'} (λ x x∈xs' → p x (there x∈xs')) x e
 
-    -- CASI MI AMIGO, CASI
-    -- manyThere : ∀ {A : Set} (xs : List A) (n : ℕ)
-    --   -- → T ⌊ 1 ≤? n ⌋
-    --   → n < length xs
-    --   → ∃[ x ] x ∈ xs
-    -- manyThere (x ∷ xs) zero e = ⟨ x , here refl ⟩
-    -- manyThere (x ∷ xs) (suc n) (s≤s e) with manyThere xs n e
-    -- ... | ⟨ x , p ⟩ = ⟨ x , there p ⟩
+    to∘from : {xs : List A} → (p : (x : A) → x ∈ xs → P x) → to xs (from xs p) ≡ p
+    to∘from p = ∀-extensionality λ x → ∀-extensionality λ e → lemma' p x e
 
-    -- from' : (xs ys : List A) → (∀ x → x ∈ xs → P x) → (n : ℕ) → n + length ys ≡ length xs → All P ys
-    -- from' xs [] p n e = []
-    -- from' xs (x ∷ ys) p n e = Px ∷ Pys
-    --   where
-    --     Px = ∃-elim {!!} (manyThere xs n {!!})
-    --     Pys = from' xs ys p (suc n) (trans (sym (+-suc n (length ys))) e)
+Any-∃ : ∀ {A : Set} {P : A → Set} (xs : List A)
+  → Any P xs ≃ ∃[ x ] (x ∈ xs × P x)
+Any-∃ {A} {P} xs = record
+  { to = to ; from = from ; from∘to = from∘to ; to∘from = to∘from }
+  where
+    to : {xs : List A} → Any P xs → ∃[ x ] (x ∈ xs × P x)
+    to {x ∷ xs'} (here Px) = ⟨ x , ⟨ here refl , Px ⟩ ⟩
+    to {_ ∷ xs'} (there e) with to e
+    ... | ⟨ x , ⟨ x∈xs' , Px ⟩ ⟩ = ⟨ x , ⟨ there x∈xs' , Px ⟩ ⟩
 
-    -- from : (xs : List A) → (∀ x → x ∈ xs → P x) → All P xs
-    -- from xs p = from' xs xs p 0 refl
+    from : {xs : List A} → ∃[ x ] (x ∈ xs × P x) → Any P xs
+    from {.(x ∷ _)} ⟨ x , ⟨ here refl , Px ⟩ ⟩ = here Px
+    from {(_ ∷ xs')} ⟨ x , ⟨ there x∈xs' , Px ⟩ ⟩ =
+      there (from ⟨ x , ⟨ x∈xs' , Px ⟩ ⟩)
 
-    -- foldN : ( f : A → A) → A → ℕ → A
-    -- foldN f e zero = e
-    -- foldN f e (suc n) = f (foldN f e n)
+    from∘to : {xs : List A} (Pxs : Any P xs) → from (to Pxs) ≡ Pxs
+    from∘to (here  Px)  = refl
+    from∘to (there Pxs) = cong there (from∘to Pxs)
 
-    -- any-where? : (x : A) (xs : List A) → ℕ → Maybe (x ∈ xs)
-    -- any-where? x [] n = nothing
-    -- any-where? x (y ∷ xs) n with x ≡ y
-    -- ... | refl = ?
-    -- ... | ()
+    to∘from : {xs : List A} (∃x : ∃[ x ] (x ∈ xs × P x)) → to (from ∃x) ≡ ∃x
+    to∘from {.(x ∷ _)} ⟨ x , ⟨ here refl , Px ⟩ ⟩ = refl
+    to∘from {_ ∷ xs'} ⟨ x , ⟨ there x∈xs' , Px ⟩ ⟩
+      rewrite to∘from ⟨ x , ⟨ x∈xs' , Px ⟩ ⟩ = refl
 
-    -- from' : (xs ys : List A) → (∀ x → x ∈ xs → P x) → All P ys
-    -- from' [] p n = []
-    -- from' (x ∷ xs) p n = {!!}
+all : ∀ {A : Set} → (A → Bool) → List A → Bool
+all p = foldr (λ x → p x ∧_) true
 
-    -- foldAny : ((x : A) → List Set → List Set) → List Set → List A → List Set
-    -- foldAny f 
+Decidable : ∀ {A : Set} → (A → Set) → Set
+Decidable {A} P = ∀ (x : A) → Dec (P x)
 
-    -- All-∈ : ∀ {A : Set} (xs : List A) → All (_∈ xs) xs
-    -- All-∈ xs = {!!}
+-- Por qué no escribir
+-- Decidable' : ∀ {A : Set} (P : A → Set) (x : A) → Dec (P x)
+-- Decidable' P x = ?
+-- All?' : ∀ {A : Set} {P : A → Set} {xs : List A} → Decidable' P → Decidable' (All P)
 
-    -- from' : (xs ys : List A) → (∀ x → x ∈ xs → P x) → (n m : ℕ) → 0 < m → n + m ≡ length xs → All P ys
-    -- from' xs [] p n m 0<m n+m=xs = []
-    -- from' xs (x ∷ ys) p n (suc m) 0<m n+m=xs = Px ∷ Pys
-    --   where Px = p x {!!}
-    --         Pys = from' xs ys p (suc n) m {!!} {!!}
+-- Porque Decidable es la Prop que está habitada cuando ∀ x. Dec (P x) está
+-- habitada. Y Decidable' es una función que dice cómo obtener un habitante de
+-- Dec (P x). Pero no todo P es decidible así que sería imposible construir esa
+-- función. Entonces Decidable es una Prop, y All? por ejemplo es la prueba de
+-- inhabitation de Decidable con P = All P', asumiendo habitado Decidable P, es
+-- decir hay función que para x da prueba de P x o de ¬ (P x).
 
-    -- manyThere : ∀ {A : Set} (xs : List A) (n : ℕ)
-    --   -- → T ⌊ 1 ≤? n ⌋
-    --   → n < length xs
-    --   → ∃[ x ] x ∈ xs
-    -- manyThere (x ∷ xs) zero e = ⟨ x , here refl ⟩
-    -- manyThere (x ∷ xs) (suc n) (s≤s e) with manyThere xs n e
-    -- ... | ⟨ x , p ⟩ = ⟨ x , there p ⟩
+All? : ∀ {A : Set} {P : A → Set} → Decidable P → Decidable (All P)
+All? P? [] = yes []
+All? P? (x ∷ xs) with P? x | All? P? xs
+... | yes Px | yes Pxs = yes (Px ∷ Pxs)
+... | yes Px | no ¬Pxs = no λ{ (Px ∷ Pxs) → ¬Pxs Pxs }
+... | no ¬Px | _       = no λ{ (Px ∷ _) → ¬Px Px }
 
-    -- mapThere : (x : A) (xs : All P xs) → All P (x ∷ xs)
-    -- mapThere = {!!}
+Any? : ∀ {A : Set} → {P : A → Set} → Decidable P → Decidable (Any P)
+Any? P? [] = no λ ()
+Any? P? (x ∷ xs) with P? x | Any? P? xs
+... | yes Px | _ = yes (here Px)
+... | no ¬Px | yes Pxs = yes (there Pxs)
+... | no ¬Px | no ¬Pxs = no λ{ (here Px) → ¬Px Px ; (there Pxs) → ¬Pxs Pxs }
 
-    -- fromN : (xs : List A) → (∀ x → x ∈ xs → P x) → ℕ → All P xs
-    -- fromN [] p n = []
-    -- fromN (x ∷ xs) p n = {!!}
+data merge {A : Set} : (xs ys zs : List A) → Set where
 
--- _∈?_ : ∀ {A : Set} (x : A) (xs : List A) → Dec (x ∈ xs)
--- x ∈? [] = no λ ()
--- x ∈? (x₁ ∷ xs) = {!!}
+  [] : merge [] [] []
 
--- with x ∈? xs
--- ... | yes _ = {!!}
--- ... | no _ = {!!}
+  left-∷ : ∀ {x xs ys zs}
+    → merge xs ys zs
+      --------------
+    → merge (x ∷ xs) ys (x ∷ zs)
+
+  right-∷ : ∀ {y xs ys zs}
+    → merge xs ys zs
+      --------------
+    → merge xs (y ∷ ys) (y ∷ zs)
+
+split : ∀ {A : Set} {P : A → Set} (P? : Decidable P) (zs : List A)
+  → ∃[ xs ] ∃[ ys ] (merge xs ys zs × All P xs × All (¬_ ∘ P) ys)
+split P? [] = ⟨ [] , ⟨ [] , ⟨ [] , ⟨ [] , [] ⟩ ⟩ ⟩ ⟩
+split P? (x ∷ zs) with P? x | split P? zs
+... | yes Px | ⟨ xs , ⟨ ys , ⟨ zs' , ⟨ Pxs , ¬Pxs ⟩ ⟩ ⟩ ⟩ =
+  ⟨ x ∷ xs , ⟨ ys , ⟨ left-∷ zs' , ⟨ Px ∷ Pxs , ¬Pxs ⟩ ⟩ ⟩ ⟩
+... | no ¬Px | ⟨ xs , ⟨ ys , ⟨ zs' , ⟨ Pxs , ¬Pxs ⟩ ⟩ ⟩ ⟩ =
+  ⟨ xs , ⟨ x ∷ ys , ⟨ right-∷ zs' , ⟨ Pxs , ¬Px ∷ ¬Pxs ⟩ ⟩ ⟩ ⟩
