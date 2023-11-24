@@ -193,3 +193,23 @@ swap {Γ} {x} {y} {M} {A} {B} {C} x≢y ⊢M = rename ρ ⊢M
   ρ Z = S x≢y Z
   ρ (S x≢z Z) = Z
   ρ (S x≢z (S y≢z p)) = S y≢z (S x≢z p)
+
+subst : ∀ {Γ x N V A B}
+  → ∅ ⊢ V ⦂ A
+  → Γ , x ⦂ A ⊢ N ⦂ B
+    ------------------
+  → Γ ⊢ N [ x := V ] ⦂ B
+subst {x = y} ⊢V (⊢` {x = x} Z) with x ≟ y
+... | yes _ = weaken ⊢V
+... | no x≢x = ⊥-elim (x≢x refl)
+subst {x = y} ⊢V (⊢` {x = x} (S x≢y ∋x)) with x ≟ y
+... | yes x≡y = ⊥-elim (x≢y x≡y)
+... | no _ = ⊢` ∋x
+subst {x = y} ⊢V (⊢ƛ {x = x} ⊢N') with x ≟ y
+... | yes x≡y = {!!}
+... | no _ = {!!}
+subst ⊢V (⊢N · ⊢N₁) = {!!}
+subst ⊢V ⊢zero = {!!}
+subst ⊢V (⊢suc ⊢N) = {!!}
+subst ⊢V (⊢case ⊢N ⊢N₁ ⊢N₂) = {!!}
+subst ⊢V (⊢μ ⊢N) = {!!}
